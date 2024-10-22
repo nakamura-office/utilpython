@@ -11,21 +11,22 @@ class WebSearchUtil:
         self.service = build("customsearch", "v1", cache_discovery=False, developerKey=self.api_key)
 
 
-    def web_search(self, keyword: str, url: str = "") -> List[Dict[str, Any]]:
+    def web_search(self, keyword: str, url: str = "", start_index: int = 1, search_num: int = 5) -> List[Dict[str, Any]]:
         """指定されたキーワードでWeb検索を行い、必要な情報を返す
 
         Args:
             keyword: キーワード
             url: 検索対象のURL
+            start_index: 検索開始位置
+            search_num: 検索数
 
         Returns:
             検索結果
         """
-        start_index = 1
         if url != "":
             keyword += f" site:{url}"
 
-        response = self.service.cse().list(q=keyword, cx=self.cse_id, num=5, start=start_index).execute()
+        response = self.service.cse().list(q=keyword, cx=self.cse_id, num=search_num, start=start_index).execute()
 
         if response["searchInformation"]["totalResults"] == "0":
             return []
@@ -33,12 +34,11 @@ class WebSearchUtil:
             return response["items"]
 
 
-    def get_web_page(self, search_result: Dict[str, Any], message: str) -> Dict[str, Union[str, None]]:
+    def get_web_page(self, search_result: Dict[str, Any]) -> Dict[str, Union[str, None]]:
         """指定されたURLのWebページを取得し、検索ワードに関連する部分を取得する
 
         Args:
             search_result: google検索結果
-            keyword: 検索ワード
 
         Returns:
             Webページの内容

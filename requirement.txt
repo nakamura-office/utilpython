@@ -1,3 +1,7 @@
 requests
 bs4
 google-api-python-client
+#google-cloud-aiplatform
+#PyMuPDF
+#beautifulsoup4
+#google-cloud-discoveryengine
