@@ -13,6 +13,7 @@ python = "^3.12"
 requests = "^2.32.3"
 google-api-python-client = "^2.149.0"
 bs4 = "^0.0.2"
+google-cloud-aiplatform = "^1.70.0"
 
 
 
