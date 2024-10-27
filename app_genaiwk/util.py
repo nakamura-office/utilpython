@@ -2,6 +2,7 @@ import requests
 from typing import List, Dict, Any, Union
 from googleapiclient.discovery import build
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor
 
 import vertexai
 from vertexai.preview.generative_models import GenerativeModel, Part, Image, Content
@@ -76,6 +77,38 @@ class WebSearchUtil:
         result['abstract'] = input_text
 
         return result
+
+
+    def get_search_summary(self, keyword: str, url: str = "", start_index: int = 1, search_num: int = 5) -> List[Dict[str, Any]]:
+        """指定されたキーワードでWeb検索を行い、情報を集約して返す
+
+        Args:
+            keyword: キーワード
+            url: 検索対象のURL
+            start_index: 検索開始位置
+            search_num: 検索数
+
+        Returns:
+            検索結果
+        """
+
+        # Web検索
+        search_results = self.web_search(keyword=keyword, url=url, start_index=start_index, search_num=search_num)
+
+        # Webページの取得
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(self.get_web_page, item) for item in search_results]
+        # 結果を収集
+        summary_text = ""
+        for future in futures:
+            func_result = future.result()
+            title = func_result.get("title")
+            link = func_result.get("link")
+            abstract = func_result.get("abstract")
+            summary_text += f"Webページのタイトル: {title}\nURL: {link}\n"
+            summary_text += f"取得情報：\n{abstract}\n\n"
+
+        return summary_text
 
 
 class LLMUtil:
