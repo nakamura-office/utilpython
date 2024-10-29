@@ -112,13 +112,14 @@ class WebSearchUtil:
 
 
 class LLMUtil:
-    def __init__(self, model_name, system_instruction=None, response_mime_type="text/plain"):
+    def __init__(self, model_name, system_instruction=None, response_mime_type="text/plain", max_output_tokens=2048):
         self.model_name = model_name
         self.system_instruction = system_instruction
+        self.max_output_tokens = max_output_tokens
         self.response_mime_type = response_mime_type
         self.generation_config = {
             "temperature": 0.0,
-            "max_output_tokens": 2048,
+            "max_output_tokens": self.max_output_tokens,
             "response_mime_type": self.response_mime_type
             }
         self.model = GenerativeModel(model_name=self.model_name, system_instruction=self.system_instruction)
