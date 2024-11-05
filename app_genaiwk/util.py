@@ -145,7 +145,7 @@ class LLMUtil:
             message_history.append(Content(role="model", parts=[Part.from_text(output_from_llm)]))
         chat = self.model.start_chat(history=message_history)
         try:
-            response = chat.send_message(content=message, safety_settings=safety_settings_NONE)
+            response = chat.send_message(content=message, safety_settings=safety_settings_NONE, generation_config=self.generation_config)
         except vertexai.generative_models._generative_models.ResponseBlockedError as e:
             print(e)
             return "I'm sorry, I can't answer that."
