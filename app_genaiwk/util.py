@@ -79,7 +79,7 @@ class WebSearchUtil:
         return result
 
 
-    def get_search_summary(self, keyword: str, url: str = "", start_index: int = 1, search_num: int = 5) -> List[Dict[str, Any]]:
+    def get_search_summary(self, keyword: str, url: str = "", start_index: int = 1, search_num: int = 5) -> str:
         """指定されたキーワードでWeb検索を行い、情報を集約して返す
 
         Args:
@@ -89,7 +89,7 @@ class WebSearchUtil:
             search_num: 検索数
 
         Returns:
-            検索結果
+            検索結果の要約
         """
 
         # Web検索
@@ -149,6 +149,5 @@ class LLMUtil:
         except vertexai.generative_models._generative_models.ResponseBlockedError as e:
             print(e)
             return "I'm sorry, I can't answer that."
-        del chat_model
         return response.text
 
