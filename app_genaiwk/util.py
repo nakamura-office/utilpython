@@ -1,3 +1,5 @@
+import datetime
+
 import requests
 from typing import List, Dict, Any, Union
 from googleapiclient.discovery import build
@@ -7,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import vertexai
 from vertexai.preview.generative_models import GenerativeModel, Part, Image, Content
 from vertexai.preview import generative_models
+from google.cloud import storage
 
 # geminiのモデル名
 model_gemini_pro10 = "gemini-1.0-pro-002"
@@ -151,3 +154,22 @@ class LLMUtil:
             return "I'm sorry, I can't answer that."
         return response.text
 
+
+def check_gc_notification(bucket_name: str, file_name_base: str, threshold: int) -> bool:
+    # google storageの初期化
+    storage_client = storage.Client()
+    # bucketの取得
+    bucket = storage_client.bucket(bucket_name)
+    # file_name_baseで始まるファイルのリストを取得
+    blobs = bucket.list_blobs(prefix=file_name_base)
+    # blobsをファイル名の降順でソート
+    blobs = sorted(blobs, key=lambda x: x.name, reverse=True)
+    # 1件目のファイルの情報を出力
+    blob = blobs[0]
+    # ファイル名(budget_over_20241115_10.txt)の中のパーセントを取得
+    percent = int(blob.name.split("_")[3].split(".")[0])
+    
+    if percent >= threshold:
+        return True
+    else:
+        return False
