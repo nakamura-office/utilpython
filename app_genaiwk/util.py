@@ -69,6 +69,7 @@ class WebSearchUtil:
             r = requests.get(url=search_result.get("link"), headers=headers, timeout=(3.0, 7.5))
             content_type_encoding = r.encoding if r.encoding != 'ISO-8859-1' else None
             soup = BeautifulSoup(r.content, 'html.parser', from_encoding=content_type_encoding)
+            html_body = soup.find("body").text
             input_text = soup.find("body").text
             input_text = input_text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")
         except Exception as e:
@@ -78,6 +79,7 @@ class WebSearchUtil:
         result['title'] = search_result.get("title")
         result['link'] = search_result.get("link")
         result['abstract'] = input_text
+        result['html_body'] = html_body
 
         return result
 
