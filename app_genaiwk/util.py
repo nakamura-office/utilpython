@@ -10,6 +10,8 @@ import vertexai
 from vertexai.preview.generative_models import GenerativeModel, Part, Image, Content, GenerationConfig
 from vertexai.preview import generative_models
 from google.cloud import storage
+from google.api_core.client_options import ClientOptions
+from google.cloud import discoveryengine_v1 as discoveryengine
 
 # geminiのモデル名
 model_gemini_pro10 = "gemini-1.0-pro-002"
@@ -185,3 +187,93 @@ def check_gc_notification(bucket_name: str, file_name_base: str, threshold: int)
         return True
     else:
         return False
+
+
+class RetrieverUtil:
+    def __init__(self, project_id, data_store_id):
+        self.project_id = project_id
+        self.data_store_id = data_store_id
+        self.location = "global"
+        
+        # クライアントのオプションを設定
+        client_options = (
+            ClientOptions(api_endpoint=f"{self.location}-discoveryengine.googleapis.com")
+            if self.location != "global"
+            else None
+        )
+
+        # クライアントを初期化
+        self.client = discoveryengine.SearchServiceClient(client_options=client_options)
+
+
+    def search_document(self, search_query: str) -> List[dict]:
+        # for debug
+        # param_text = search_query.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")
+        # print(f"start proc search_document params={param_text[:40]}")
+        # logger.info(f"start search_document params={param_text[:40]}")        
+
+
+        # サービング構成を指定
+        serving_config = self.client.serving_config_path(
+            project=self.project_id,
+            location=self.location,
+            data_store=self.data_store_id,
+            serving_config="default_config",
+        )
+
+
+
+        # コンテンツ検索仕様を指定
+        content_search_spec = discoveryengine.SearchRequest.ContentSearchSpec(
+            extractive_content_spec=discoveryengine.SearchRequest.ContentSearchSpec.ExtractiveContentSpec(
+                    max_extractive_segment_count=1,
+                    max_extractive_answer_count=1,
+                    return_extractive_segment_score=True
+            ),
+            snippet_spec=discoveryengine.SearchRequest.ContentSearchSpec.SnippetSpec(
+                return_snippet=True
+            ),
+            # 要約の生成をしない
+            #summary_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec(
+            #     summary_result_count=5,
+            #    include_citations=True,
+            #    ignore_adversarial_query=True,
+            #    ignore_non_summary_seeking_query=True,
+            #),
+        )
+
+        # 検索リクエストを作成
+        request = discoveryengine.SearchRequest(
+            serving_config=serving_config,
+            query=search_query,
+            page_size=10,
+            content_search_spec=content_search_spec,
+            query_expansion_spec=discoveryengine.SearchRequest.QueryExpansionSpec(
+                condition=discoveryengine.SearchRequest.QueryExpansionSpec.Condition.AUTO,
+            ),
+            spell_correction_spec=discoveryengine.SearchRequest.SpellCorrectionSpec(
+                mode=discoveryengine.SearchRequest.SpellCorrectionSpec.Mode.AUTO
+            ),
+        )
+
+        response = self.client.search(request)
+
+        # 検索結果から必要な項目を取得する（title,extractive_segments,link,）
+        document_summary_list = []
+
+        # for debug
+        #print(f'{search_results=}')
+
+        # 検索結果からファイルのCloud Storageリンクを取得
+        for result in response.results:
+            document_summary = {}
+            document_summary["title"] = result.document.derived_struct_data.get("title")
+            document_summary["link"] = result.document.derived_struct_data.get("link")
+            for ex_seg in result.document.derived_struct_data.get("extractive_segments"):
+                document_summary["extractive_segment_page_number"] = ex_seg.get("pageNumber")
+                document_summary["extractive_segment_content"] = ex_seg.get("content")
+                document_summary["extractive_segment_relevanceScore"] = ex_seg.get("relevanceScore")
+                document_summary_list.append(document_summary)
+
+        return document_summary_list
+
