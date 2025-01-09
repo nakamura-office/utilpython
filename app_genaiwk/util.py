@@ -1,4 +1,5 @@
 import datetime
+import warnings
 
 import requests
 from typing import List, Dict, Any, Union
@@ -12,6 +13,11 @@ from vertexai.preview import generative_models
 from google.cloud import storage
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
+
+from elasticsearch.exceptions import ElasticsearchWarning
+from elasticsearch import Elasticsearch
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
 
 # geminiのモデル名
 model_gemini_pro10 = "gemini-1.0-pro-002"
@@ -277,3 +283,34 @@ class RetrieverUtil:
 
         return document_summary_list
 
+
+class ElasticSearchUtil:
+    def __init__(self, endpoint: str) -> None:
+        self.endpoint = endpoint       
+
+    def search_document(self, index_name:str, query: str, eval_column:str, target_column:list, token: str="") -> List[dict]:
+        """
+        単純な単語検索を行う
+        """
+        # GoogleCloudの認証トークンを取得
+        if token == "":
+            token = id_token.fetch_id_token(Request(), self.endpoint)
+        
+        # Elasticsearchクライアントの作成
+        es = Elasticsearch(
+            [self.endpoint],
+            headers={"Authorization": f"Bearer {token}"}  # 認証トークンを指定
+        )
+        # for debug
+        # Elasticsearchの警告を無視
+        warnings.filterwarnings('ignore', category=ElasticsearchWarning)
+
+        # キーワード検索
+        search_body = {'_source': target_column, 'query': {'match': {eval_column: query}}}
+        res = self.es.search(index=index_name, body=search_body)
+        hits = [dict(list(doc['_source'].items()) + [('score', doc['_score'])]) for doc in res['hits']['hits']]
+        
+        # 内部接続を閉じる
+        es.close()
+
+        return hits
