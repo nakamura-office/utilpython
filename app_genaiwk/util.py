@@ -307,7 +307,7 @@ class ElasticSearchUtil:
 
         # キーワード検索
         search_body = {'_source': target_column, 'query': {'match': {eval_column: query}}}
-        res = self.es.search(index=index_name, body=search_body)
+        res = es.search(index=index_name, body=search_body)
         hits = [dict(list(doc['_source'].items()) + [('score', doc['_score'])]) for doc in res['hits']['hits']]
         
         # 内部接続を閉じる
