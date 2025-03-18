@@ -82,6 +82,7 @@ class WebSearchUtil:
             input_text = input_text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")
         except Exception as e:
             input_text = "Webページの取得に失敗しました。"
+            html_body = "Webページの取得に失敗しました。"
 
         result = {}
         result['title'] = search_result.get("title")
