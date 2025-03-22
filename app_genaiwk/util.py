@@ -160,14 +160,19 @@ class LLMUtil:
             return "I'm sorry, I can't answer that."
         return response
 
-    def chat(self, message, chat_history=[]) -> str:
-        message_history = []
-        for row in chat_history:
-            input_from_user = row[0]
-            output_from_llm = row[1]
-            message_history.append(Content(role="user", parts=[Part.from_text(input_from_user)]))
-            message_history.append(Content(role="model", parts=[Part.from_text(output_from_llm)]))
-        chat = self.model.start_chat(history=message_history)
+    def chat(self, message, chat_history=[], type="messages") -> str:
+        """
+        type: "tuple" or "messages"
+        """
+        if type == "tuple":
+            message_history = []
+            for row in chat_history:
+                input_from_user = row[0]
+                output_from_llm = row[1]
+                message_history.append(Content(role="user", parts=[Part.from_text(input_from_user)]))
+                message_history.append(Content(role="model", parts=[Part.from_text(output_from_llm)]))
+            chat_history = message_history
+        chat = self.model.start_chat(history=chat_history)
         try:
             response = chat.send_message(content=message, safety_settings=safety_settings_NONE, generation_config=self.generation_config)
         except vertexai.generative_models._generative_models.ResponseBlockedError as e:
