@@ -1,10 +1,14 @@
 import datetime
 import warnings
+import re
+import json
 
 import requests
+from itertools import islice
 from typing import List, Dict, Any, Union
 from googleapiclient.discovery import build
 from bs4 import BeautifulSoup
+from duckduckgo_search import DDGS
 from concurrent.futures import ThreadPoolExecutor
 
 import vertexai
@@ -20,9 +24,9 @@ from google.auth.transport.requests import Request
 from google.oauth2 import id_token
 
 # geminiのモデル名
-model_gemini_pro10 = "gemini-1.0-pro-002"
 model_gemini_pro15 = "gemini-1.5-pro-002"
 model_gemini_pro15_flash = "gemini-1.5-flash-002"
+model_gemini_pro20_flash = "gemini-2.0-flash-001"
 
 # テキストのセーフティ設定は最低にしておく（デモのため）
 safety_settings_NONE = {
@@ -123,6 +127,244 @@ class WebSearchUtil:
             summary_text += f"取得情報：\n{abstract}\n\n"
 
         return summary_text
+
+
+    def search_ddg(self, search_query, max_result_num=7, site=None, debug_mode=False) -> list[dict]:
+        """
+        DuckDuckGoを使って検索を行う関数
+        引数:
+        search_query: 検索クエリ
+        max_result_num: 最大取得数
+        site: 検索対象のサイト
+        戻り値:
+        検索結果のリスト
+        [{"title": "タイトル", "snippet": "スニペット", "link": "リンク"}, ...]
+        """
+
+        # [0] サイト指定があれば追加
+        if site:
+            search_query = f"{search_query} site:{site}"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0"
+        }
+
+        # for debug
+        if debug_mode:
+            print(f'start search_ddg keyword:{search_query}')
+        # [1] Web検索を実施
+        #res = DDGS(headers=headers).text(search_query, region='jp-jp', safesearch='off', backend="lite")
+        res = DDGS(headers=headers).text(search_query, region='jp-jp')
+
+        # [2] 結果のリストを分解して戻す
+        return [
+            {
+                "title": r.get('title', ""),
+                "snippet": r.get('body', ""),
+                "link": r.get('href', "")
+            }
+            for r in islice(res, max_result_num)
+        ]
+
+
+    def get_info_from_web(
+            self,
+            question: str, 
+            search_query: str, 
+            profile: str = "", 
+            max_result_num=7, 
+            web_info_list=[], 
+            site=None, 
+            model_name: str=model_gemini_pro20_flash,
+            threshold_relevance: int=7,
+            threshold_credibility: int=7,
+            debug_mode: bool=False) -> list:
+        """
+        インターネット検索結果から必要な情報を取得する関数
+        引数:
+        question: ユーザの質問
+        search_query: Web検索のクエリー
+        profile: ユーザ情報
+        max_result_num: 最大取得数
+        戻り値:
+        Web検索結果から取得した情報
+        """
+        
+        # for debug
+        if debug_mode:
+            print(f'start get_info_from_web_1:{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
+        # jsonの形式を定義
+        response_schema = {
+            "type": "object",
+            "properties": {
+                "relevance": {
+                    "type": "string",
+                    "description": "質問とWebページの関連度、大きいほど関連が高い、0-10の値"
+                },
+                "credibility": {
+                    "type": "string",
+                    "description": "Webページの内容の信憑性、想像だけだと信憑性が低い、公式サイトの情報や実際に検証している場合は信憑性が高い、信憑性が高いほど数値が大きい、0-10の値"
+                },
+            },
+            "required": ["relevance", "credibility"]
+        }
+        # LLMUtilを使用してチャット機能をテスト
+        system_instruction = "日本語で回答してください。"
+        llm_util = LLMUtil(
+            model_name=model_gemini_pro20_flash, 
+            system_instruction=system_instruction, 
+            response_mime_type="application/json", 
+            response_schema=response_schema
+        )
+
+        # for debug
+        if debug_mode:
+            print(f'start get_info_from_web_2:{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
+        # search_queryを元にWeb検索を実施
+        if site:
+            search_result = self.web_search(search_query, url=site, search_num=max_result_num) # DuckDuckGoが制限にかかってエラーになる場合はGoogle Custom Searchを使用する
+        else:
+            search_result = self.search_ddg(search_query, max_result_num=max_result_num)
+
+        # 検索結果をテキストで返す（暫定）
+        response_text = ""
+        response_list = []
+
+        # for debug
+        if debug_mode:
+            print(f'start get_info_from_web_3:{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
+        # Web検索結果毎に質問との関連度を評価し、回答に必要な内容を抜粋する
+        visited_list = []
+        for item in web_info_list:
+            visited_list.append(item["link"])
+        for idx, item in enumerate(search_result):
+            if item["link"] in visited_list:
+                continue
+            # Webページの内容を取得
+            web_page_body = self.get_web_page(item)["html_body"]
+            # 連続した空白を単一の空白に置き換える
+            web_page_body = re.sub(r'\s+', ' ', web_page_body)
+            # 最大文字数で制限
+            web_page_body = web_page_body[:10000]
+
+            if profile == "":
+                prompt = f"""
+                質問に回答するためにWeb検索をしました。
+                検索した結果の以下のWebページの内容が質問に対して関連があるかと
+                Webページの内容が信憑性があるかを判定してください。
+                
+                質問：```{question}```
+
+                Webページの内容：```{web_page_body}```
+
+                """
+            else:
+                prompt = f"""
+                質問に回答するためにWeb検索をしました。
+                検索した結果の以下のWebページの内容が質問に対して関連があるかと
+                Webページの内容が信憑性があるかを判定してください。
+                判定は質問者の特性も加味して検討してください。
+                
+                質問者：```{profile}```
+                質問：```{question}```
+
+                Webページの内容：```{web_page_body}```
+                """
+            # 関連度と信頼性の評価はしない（暫定、速度改善のため）
+            #"""
+            response = llm_util.generate_response(prompt)
+            try:
+                response_json = json.loads(response.text)
+            except Exception as e:
+                continue
+            relevance = int(response_json["relevance"])
+            credibility = int(response_json["credibility"])
+            if debug_mode:
+                print(f'relevance={relevance}, credibility={credibility}')
+            # 関連度と信憑性が一定値以下の場合はスキップ
+            if relevance < threshold_relevance or credibility < threshold_credibility:
+                continue
+            #"""
+            response_dict = {}
+            response_dict["title"] = item["title"]
+            response_dict["link"] = item["link"]
+            response_dict["text"] = web_page_body
+            response_list.append(response_dict)
+
+        # for debug
+        if debug_mode:
+            print(f'end get_info_from_web:{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        
+        return response_list
+
+
+    def create_web_search_query(self, question: str, profile: str = "", max_query_num: int=5, lang:str="jp", model_name: str=model_gemini_pro20_flash) -> list[str]:
+        """
+        ユーザの質問に対してWeb検索を行うためのクエリーを生成する関数
+        引数:
+        search_query: ユーザの質問
+        profile: ユーザ情報
+        max_query_num: 生成するクエリーの数
+        戻り値:
+        Web検索を行うためのクエリー
+        {"search_queries":[{"search_query":"クエリー1"},{"search_query":"クエリー2"}]}
+        """
+        # jsonの形式を定義
+        response_schema = {
+            "type": "object",
+            "properties": {
+                "search_queries": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "search_query": {
+                                "type": "string",
+                                "description": "Web検索に利用するクエリー"
+                            },
+                        },
+                        "required": ["search_query"]
+                    }
+                }
+            },
+            "required": ["search_queries"]
+        }
+        # LLMUtilを使用してチャット機能をテスト
+        if lang == "jp":
+            system_instruction = "日本語で回答してください。"
+        elif lang == "en":
+            system_instruction = "Please answer in English."
+        llm_util = LLMUtil(
+            model_name=model_name, 
+            system_instruction=system_instruction, 
+            response_mime_type="application/json", 
+            response_schema=response_schema
+        )
+
+    #        質問にバージョン番号の指定があればそれを含めてください。指定されていない場合はバージョン番号は含めないようにしてください。
+        if profile == "":
+            prompt = f"""
+            以下の質問に答えるためにWeb検索を行います。検索クエリーを{max_query_num}個程度考えてください。
+            検索クエリーには個人情報や企業情報などを含めないようにしてください。
+
+            質問：```{question}```
+            """
+        else:
+            prompt = f"""
+            以下の質問に答えるためにWeb検索を行います。検索クエリーを{max_query_num}個程度考えてください。
+            質問者の特性も加味して検討してください。
+            検索クエリーには個人情報や企業情報などを含めないようにしてください。
+
+            質問：```{question}```
+
+            質問者：```{profile}```
+            """
+
+        response = llm_util.generate_response(prompt)
+        return response.text
 
 
 class LLMUtil:
