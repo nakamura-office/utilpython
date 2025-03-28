@@ -188,6 +188,7 @@ class WebSearchUtil:
         max_result_num: 最大取得数
         戻り値:
         Web検索結果から取得した情報
+        [{"title": "タイトル", "link": "リンク", "text": "テキスト"}, ...]
         """
         
         # for debug
