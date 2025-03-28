@@ -2,7 +2,7 @@ import datetime
 import warnings
 import re
 import json
-import datetime
+from datetime import datetime
 
 import requests
 from itertools import islice
