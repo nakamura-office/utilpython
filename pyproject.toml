@@ -12,11 +12,12 @@ packages = [
 python = "^3.12"
 requests = "^2.32.3"
 bs4 = "^0.0.2"
-google-api-python-client = "^2.164.0"
-google-cloud-aiplatform = "^1.84.0"
-google-cloud-discoveryengine = "^0.13.7"
-elasticsearch = "^8.17.2"
-google-auth = "^2.38.0"
+google-api-python-client = "^2.169.0"
+google-cloud-aiplatform = "^1.92.0"
+google-cloud-discoveryengine = "^0.13.8"
+elasticsearch = "^9.0.1"
+google-auth = "^2.40.1"
+duckduckgo-search = "^8.0.1"
 
 [build-system]
 requires = ["poetry-core"]
