@@ -82,9 +82,14 @@ class WebSearchUtil:
             r = requests.get(url=search_result.get("link"), headers=headers, timeout=(3.0, 7.5))
             content_type_encoding = r.encoding if r.encoding != 'ISO-8859-1' else None
             soup = BeautifulSoup(r.content, 'html.parser', from_encoding=content_type_encoding)
-            html_body = soup.find("body").text
-            input_text = soup.find("body").text
-            input_text = input_text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")
+            body_tag = soup.find("body")
+            if body_tag is not None:
+                html_body = body_tag.text
+                input_text = body_tag.text
+                input_text = input_text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")
+            else:
+                input_text = "bodyタグがありませんでした。"
+                html_body = "bodyタグがありませんでした。"
         except Exception as e:
             input_text = "Webページの取得に失敗しました。"
             html_body = "Webページの取得に失敗しました。"
@@ -248,7 +253,10 @@ class WebSearchUtil:
             # Webページの内容を取得
             web_page_body = self.get_web_page(item)["html_body"]
             # 連続した空白を単一の空白に置き換える
-            web_page_body = re.sub(r'\s+', ' ', web_page_body)
+            if web_page_body is not None:
+                web_page_body = re.sub(r'\s+', ' ', web_page_body)
+            else:
+                web_page_body = ""
             # 最大文字数で制限
             web_page_body = web_page_body[:10000]
 
@@ -339,6 +347,8 @@ class WebSearchUtil:
             system_instruction = "日本語で回答してください。"
         elif lang == "en":
             system_instruction = "Please answer in English."
+        else:
+            system_instruction = "日本語で回答してください。"
         llm_util = LLMUtil(
             model_name=model_name, 
             system_instruction=system_instruction, 
@@ -392,7 +402,7 @@ class LLMUtil:
             )
         self.model = GenerativeModel(model_name=self.model_name, system_instruction=self.system_instruction)
 
-    def generate_response(self, prompt: str) -> str:
+    def generate_response(self, prompt: str) -> Any:
         try:
             response = self.model.generate_content(
                 prompt,
@@ -401,7 +411,7 @@ class LLMUtil:
                 )
         except Exception as e:
             print(f'error={e}')
-            return "I'm sorry, I can't answer that."
+            return None
         return response
 
     def chat(self, message, chat_history=[], type="messages") -> str:
@@ -422,6 +432,8 @@ class LLMUtil:
                     message_history.append(Content(role="user", parts=[Part.from_text(row["content"])]))
                 elif row["role"] == "assistant":
                     message_history.append(Content(role="model", parts=[Part.from_text(row["content"])]))
+        else:
+            message_history = []
 
         chat = self.model.start_chat(history=message_history)
         try:
@@ -551,7 +563,11 @@ class ElasticSearchUtil:
         """
         # GoogleCloudの認証トークンを取得
         if token == "":
-            token = id_token.fetch_id_token(Request(), self.endpoint)
+            if not self.endpoint:
+                raise ValueError("endpointが設定されていません")
+            token = id_token.fetch_id_token(Request(), self.endpoint) or ""
+            if not isinstance(token, str):
+                token = str(token)
         
         # Elasticsearchクライアントの作成
         es = Elasticsearch(
