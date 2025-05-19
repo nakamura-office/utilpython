@@ -311,7 +311,7 @@ class WebSearchUtil:
         return response_list
 
 
-    def create_web_search_query(self, question: str, profile: str = "", max_query_num: int=5, lang:str="jp", model_name: str=model_gemini_pro20_flash) -> list[str]:
+    def create_web_search_query(self, question: str, profile: str = "", max_query_num: int=5, lang:str="jp", model_name: str=model_gemini_pro20_flash) -> str: 
         """
         ユーザの質問に対してWeb検索を行うためのクエリーを生成する関数
         引数:
