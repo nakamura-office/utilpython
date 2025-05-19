@@ -402,7 +402,7 @@ class LLMUtil:
             )
         self.model = GenerativeModel(model_name=self.model_name, system_instruction=self.system_instruction)
 
-    def generate_response(self, prompt: str) -> Any:
+    def generate_response(self, prompt) -> Any:
         try:
             response = self.model.generate_content(
                 prompt,
