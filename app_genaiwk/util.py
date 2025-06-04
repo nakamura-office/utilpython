@@ -380,23 +380,24 @@ class WebSearchUtil:
 
 
 class LLMUtil:
-    def __init__(self, model_name, system_instruction=None, response_mime_type="text/plain", max_output_tokens=2048, response_schema=None):
+    def __init__(self, model_name, system_instruction=None, response_mime_type="text/plain", temperature=0.0, max_output_tokens=2048, response_schema=None):
         self.model_name = model_name
         self.system_instruction = system_instruction
+        self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.response_mime_type = response_mime_type
         self.response_schema = response_schema
             # configの設定
         if response_schema is not None:
             self.generation_config = GenerationConfig(
-                temperature=0.0,
+                temperature=self.temperature,
                 max_output_tokens=self.max_output_tokens,
                 response_mime_type=self.response_mime_type,
                 response_schema=self.response_schema
             )
         else:
             self.generation_config = GenerationConfig(
-                temperature=0.0,
+                temperature=self.temperature,
                 max_output_tokens=self.max_output_tokens,
                 response_mime_type=self.response_mime_type
             )
