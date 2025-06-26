@@ -387,20 +387,16 @@ class LLMUtil:
         self.max_output_tokens = max_output_tokens
         self.response_mime_type = response_mime_type
         self.response_schema = response_schema
-            # configの設定
+        # configの設定
+        gen_config_kwargs = {
+            "temperature": self.temperature,
+            "response_mime_type": self.response_mime_type,
+        }
+        if self.max_output_tokens > 0:
+            gen_config_kwargs["max_output_tokens"] = self.max_output_tokens
         if response_schema is not None:
-            self.generation_config = GenerationConfig(
-                temperature=self.temperature,
-                max_output_tokens=self.max_output_tokens,
-                response_mime_type=self.response_mime_type,
-                response_schema=self.response_schema
-            )
-        else:
-            self.generation_config = GenerationConfig(
-                temperature=self.temperature,
-                max_output_tokens=self.max_output_tokens,
-                response_mime_type=self.response_mime_type
-            )
+            gen_config_kwargs["response_schema"] = self.response_schema
+        self.generation_config = GenerationConfig(**gen_config_kwargs)
         self.model = GenerativeModel(model_name=self.model_name, system_instruction=self.system_instruction)
 
     def generate_response(self, prompt) -> Any:
