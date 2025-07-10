@@ -233,7 +233,8 @@ class WebSearchUtil:
         if site:
             search_result = self.web_search(search_query, url=site, search_num=max_result_num) # DuckDuckGoが制限にかかってエラーになる場合はGoogle Custom Searchを使用する
         else:
-            search_result = self.search_ddg(search_query, max_result_num=max_result_num)
+            #search_result = self.search_ddg(search_query, max_result_num=max_result_num)
+            search_result = self.web_search(search_query, search_num=max_result_num) # DuckDuckGoが制限にかかってエラーになる場合はGoogle Custom Searchを使用する
 
         # 検索結果をテキストで返す（暫定）
         response_text = ""
