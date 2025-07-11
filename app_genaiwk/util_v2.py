@@ -198,7 +198,7 @@ class WebSearchUtil:
             model_name: str=model_gemini_pro25_flash,
             threshold_relevance: int=7,
             threshold_credibility: int=7,
-            debug_mode: bool=True) -> list:
+            debug_mode: bool=False) -> list:
         """
         インターネット検索結果から必要な情報を取得する関数
         引数:
