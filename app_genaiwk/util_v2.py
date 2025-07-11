@@ -301,7 +301,8 @@ class WebSearchUtil:
                 model_name=model_name, 
                 system_instruction=system_instruction, 
                 response_mime_type="application/json", 
-                response_schema=response_schema
+                response_schema=response_schema,
+                thinking_budget=0
             )
             try:
                 response_json = json.loads(response.text)
