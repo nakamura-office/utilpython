@@ -190,8 +190,8 @@ class WebSearchUtil:
             self,
             question: str, 
             search_query: str,
-            project: str,
-            location: str = "us-central1", 
+#            project: str,
+#            location: str = "us-central1", 
             profile: str = "", 
             max_result_num=7, 
             web_info_list=[], 
@@ -233,7 +233,7 @@ class WebSearchUtil:
         }
         # LLMUtilを使用してチャット機能をテスト
         system_instruction = "日本語で回答してください。"
-        llm_util = LLMUtil(project=project, location=location)
+        llm_util = LLMUtil()
 
 
         # for debug
@@ -329,7 +329,9 @@ class WebSearchUtil:
         return response_list
 
 
-    def create_web_search_query(self, question: str, project: str, location: str="us-central1", profile: str = "", max_query_num: int=5, lang:str="jp", model_name: str=model_gemini_pro25_flash) -> str: 
+    def create_web_search_query(self, question: str, 
+                                #project: str, location: str="us-central1", 
+                                profile: str = "", max_query_num: int=5, lang:str="jp", model_name: str=model_gemini_pro25_flash) -> str: 
         """
         ユーザの質問に対してWeb検索を行うためのクエリーを生成する関数
         引数:
@@ -367,7 +369,7 @@ class WebSearchUtil:
             system_instruction = "Please answer in English."
         else:
             system_instruction = "日本語で回答してください。"
-        llm_util = LLMUtil(project=project, location=location)
+        llm_util = LLMUtil()
 
     #        質問にバージョン番号の指定があればそれを含めてください。指定されていない場合はバージョン番号は含めないようにしてください。
         if profile == "":
@@ -399,9 +401,9 @@ class WebSearchUtil:
 
 
 class LLMUtil:
-    def __init__(self, project: str, location: str = "us-central1"):
+    def __init__(self):
         #self.model = GenerativeModel(model_name=self.model_name, system_instruction=self.system_instruction)
-        self.client = genai.Client(vertexai=True, project=project, location=location)
+        self.client = genai.Client(vertexai=True)
 
     def generate_response(
             self, 
