@@ -410,10 +410,10 @@ class LLMUtil:
             self, 
             prompt, 
             model_name=model_gemini_pro25_flash, 
+            max_output_tokens=None, 
             system_instruction=None, 
             response_mime_type="text/plain", 
             temperature=0.0, 
-            max_output_tokens=2048, 
             response_schema=None, 
             thinking_budget=8000,
         ) -> Any:
@@ -424,7 +424,7 @@ class LLMUtil:
             "safety_settings": SAFETY_SETTING_NONE,
             "system_instruction":system_instruction
         }
-        if max_output_tokens > 0:
+        if max_output_tokens is not None and max_output_tokens > 0:
             gen_config_kwargs["max_output_tokens"] = max_output_tokens
         if response_schema is not None:
             gen_config_kwargs["response_schema"] = response_schema
@@ -454,7 +454,7 @@ class LLMUtil:
             system_instruction=None, 
             response_mime_type="text/plain", 
             temperature=0.0, 
-            max_output_tokens=2048, 
+            max_output_tokens=None, 
             response_schema=None, 
             thinking_budget=8000,
             ) -> str:
@@ -468,7 +468,7 @@ class LLMUtil:
             "safety_settings": SAFETY_SETTING_NONE,
             "system_instruction":system_instruction
         }
-        if max_output_tokens > 0:
+        if max_output_tokens is not None and max_output_tokens > 0:
             gen_config_kwargs["max_output_tokens"] = max_output_tokens
         if response_schema is not None:
             gen_config_kwargs["response_schema"] = response_schema
