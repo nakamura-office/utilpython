@@ -294,22 +294,26 @@ class WebSearchUtil:
 
                 Webページの内容：```{web_page_body}```
                 """
-            # 関連度と信頼性の評価はしない（暫定、速度改善のため）
-            #"""
-            response = llm_util.generate_response(
-                prompt,
-                model_name=model_name, 
-                system_instruction=system_instruction, 
-                response_mime_type="application/json", 
-                response_schema=response_schema,
-                thinking_budget=0
-            )
-            try:
-                response_json = json.loads(response.text)
-            except Exception as e:
-                continue
-            relevance = int(response_json["relevance"])
-            credibility = int(response_json["credibility"])
+            # 閾値の指定がない場合は関連度と信頼性の評価はしない（暫定、速度改善のため）
+            if threshold_relevance is None or threshold_credibility is None:
+                relevance = 10
+                credibility = 10
+            else:
+                #"""
+                response = llm_util.generate_response(
+                    prompt,
+                    model_name=model_name, 
+                    system_instruction=system_instruction, 
+                    response_mime_type="application/json", 
+                    response_schema=response_schema,
+                    thinking_budget=0
+                )
+                try:
+                    response_json = json.loads(response.text)
+                except Exception as e:
+                    continue
+                relevance = int(response_json["relevance"])
+                credibility = int(response_json["credibility"])
             if debug_mode:
                 print(f'relevance={relevance}, credibility={credibility}')
             # 関連度と信憑性が一定値以下の場合はスキップ
