@@ -295,7 +295,7 @@ class WebSearchUtil:
                 Webページの内容：```{web_page_body}```
                 """
             # 閾値の指定がない場合は関連度と信頼性の評価はしない（暫定、速度改善のため）
-            if threshold_relevance is None or threshold_credibility is None:
+            if threshold_relevance == 0 or threshold_credibility == 0:
                 relevance = 10
                 credibility = 10
             else:
