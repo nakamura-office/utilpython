@@ -17,7 +17,8 @@ google-cloud-aiplatform = "^1.103.0"
 google-cloud-discoveryengine = "^0.13.9"
 elasticsearch = "^9.0.2"
 google-auth = "^2.40.3"
-duckduckgo-search = "^8.0.1"
+duckduckgo-search = "^8.1.1"
+google-genai = "^1.25.0"
 
 [build-system]
 requires = ["poetry-core"]
