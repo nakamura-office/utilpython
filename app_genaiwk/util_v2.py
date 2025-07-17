@@ -485,29 +485,29 @@ class LLMUtil:
         message_history = []
         if type == "tuple":
             for user_msg, model_msg in chat_history:
-                message_history.append(types.Content(role="user", parts=[types.Part.from_text(user_msg)]))
-                message_history.append(types.Content(role="model", parts=[types.Part.from_text(model_msg)]))
+                message_history.append(types.Content(role="user", parts=[types.Part.from_text(text=user_msg)]))
+                message_history.append(types.Content(role="model", parts=[types.Part.from_text(text=model_msg)]))
         elif type == "messages":
             for row in chat_history:
                 if row["role"] == "user":
-                    message_history.append(types.Content(role="user", parts=[types.Part.from_text(row["content"])]))
+                    message_history.append(types.Content(role="user", parts=[types.Part.from_text(text=row["content"])]))
                 elif row["role"] == "assistant":
                     # google-genai では 'assistant' は通常 'model' に対応します
-                    message_history.append(types.Content(role="model", parts=[types.Part.from_text(row["content"])]))
+                    message_history.append(types.Content(role="model", parts=[types.Part.from_text(text=row["content"])]))
         else:
             message_history = []
 
-        message_history.append(types.Content(role="user", parts=[types.Part.from_text(message)]))
+        message_history.append(types.Content(role="user", parts=[types.Part.from_text(text=message)]))
         try:
             response = self.client.models.generate_content(
                 model=model_name,
                 contents=message_history,
                 config=generate_content_config,
             )
-            return response.text
+            return response.text if response and response.text is not None else ""
         except Exception as e:
             print(e)
-            return "I'm sorry, I can't answer that."
+            return ""
 
 
 def check_gc_notification(bucket_name: str, file_name_base: str, threshold: int) -> bool:
