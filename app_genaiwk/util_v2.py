@@ -442,7 +442,7 @@ class LLMUtil:
         try:
             response = self.client.models.generate_content(
                 model=model_name,
-                contents=prompt,
+                contents=[types.Part.from_text(text=prompt)],
                 config=generate_content_config,
                 )
         except Exception as e:
